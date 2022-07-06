@@ -222,7 +222,6 @@ if __name__ == '__main__':
     # a_x = [values["x"] for _, values in accelerometer_data.items()]
     # a_y = [values["y"] for _, values in accelerometer_data.items()]
     # a_z = [values["z"] for _, values in accelerometer_data.items()]
-
     paths = glob.glob("D:/Data/MS_Sleep/step_count/DataSet/optimisation/data/*Armband*/accelerometer.csv")
     
     # paths = glob.glob("D:/Data/USI_Sleep/E4_Data/S*/S*/*/accelerometer.csv")
@@ -230,21 +229,29 @@ if __name__ == '__main__':
 
     df = pd.read_csv(paths[0])
 
-    a_x = df.iloc[:,1].values
-    a_y = df.iloc[:,2].values
-    a_z = df.iloc[:,3].values
+    a_x = df.iloc[:,2].values
+    a_y = df.iloc[:,3].values
+    a_z = df.iloc[:,4].values
 
-    a_xL, a_yL, a_zL = compute_moving_average_filter_aL(a_x, a_y, a_z, 16)
+    a_xL, a_yL, a_zL = compute_moving_average_filter_aL(a_x, a_y, a_z, 16*2)
 
     # plt.plot(a_xL)
     # plt.plot(a_yL)
     # plt.plot(a_zL)
 
     # pprint(a_xL, a_yL, a_zL)
-
+    # accelerometer_data = [[df.iloc[i,0],[df.iloc[i,1],df.iloc[i,2],df.iloc[i,3]]] for i in range(len(df))]
+    accelerometer_data = dict()
+    for i in range(len(df)):
+        accelerometer_data[df.iloc[i,0]] = dict()
+        accelerometer_data[df.iloc[i,0]]['x'] = df.iloc[i,2]
+        accelerometer_data[df.iloc[i,0]]['y'] = df.iloc[i,3]
+        accelerometer_data[df.iloc[i,0]]['z'] = df.iloc[i,4]
+        
+    print(accelerometer_data)
     Am = compute_acceleration_magnitude(accelerometer_data)
     AmL = compute_moving_median_filter(Am)
-    # aL = compute_moving_average_filter_aL(accelerometer_data, 16)
+    # aL = compute_moving_average_filter_aL(accelerometer_data, 16*2)
 
     moving_avg_filter = compute_moving_average_filter(AmL, 8)
 
