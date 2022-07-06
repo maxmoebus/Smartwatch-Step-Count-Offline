@@ -4,9 +4,11 @@ from pprint import pprint
 from numpy.linalg import norm
 from statistics import median
 from statistics import mean
+import pandas as pd
 import numpy as np
+import glob
 
-NANOSECOND_TO_SECOND_FACTOR = 1000000000
+MICROSECOND_TO_SECOND_FACTOR = 1000000000
 
 lambda_M = 0.017  # Units: g
 A_xmin = 0.25     # Units: g
@@ -54,7 +56,7 @@ def normalize_times(data):
 
 def compute_acceleration_magnitude(accelerometer_data):
     return normalize_times(
-        [[int(timestamp) / NANOSECOND_TO_SECOND_FACTOR, norm((values["x"], values["y"], values["z"]))] for
+        [[int(timestamp) / MICROSECOND_TO_SECOND_FACTOR, norm((values["x"], values["y"], values["z"]))] for
          timestamp, values in accelerometer_data.items()])
 
 
@@ -214,12 +216,23 @@ def find_index_s_away(s, data):
 
 
 if __name__ == '__main__':
-    with open('pach-cardiac-Accelerometer-export-20-steps.json') as f:
-        accelerometer_data = json.load(f)
+    # with open('pach-cardiac-Accelerometer-export-20-steps.json') as f:
+    #     accelerometer_data = json.load(f)
 
-    a_x = [values["x"] for _, values in accelerometer_data.items()]
-    a_y = [values["y"] for _, values in accelerometer_data.items()]
-    a_z = [values["z"] for _, values in accelerometer_data.items()]
+    # a_x = [values["x"] for _, values in accelerometer_data.items()]
+    # a_y = [values["y"] for _, values in accelerometer_data.items()]
+    # a_z = [values["z"] for _, values in accelerometer_data.items()]
+
+    paths = glob.glob("D:/Data/MS_Sleep/step_count/DataSet/optimisation/data/*Armband*/accelerometer.csv")
+    
+    # paths = glob.glob("D:/Data/USI_Sleep/E4_Data/S*/S*/*/accelerometer.csv")
+    # paths = [path.split('accelerometer.')[0] for path in paths][0:1]
+
+    df = pd.read_csv(paths[0])
+
+    a_x = df.iloc[:,1].values
+    a_y = df.iloc[:,2].values
+    a_z = df.iloc[:,3].values
 
     a_xL, a_yL, a_zL = compute_moving_average_filter_aL(a_x, a_y, a_z, 16)
 
