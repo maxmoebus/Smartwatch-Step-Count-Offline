@@ -7,6 +7,7 @@ from statistics import mean
 import pandas as pd
 import numpy as np
 import glob
+import polars as pl
 
 MICROSECOND_TO_SECOND_FACTOR = 1000000000
 
@@ -103,7 +104,7 @@ def compute_moving_average_filter_aL(xs, ys, zs, window_length):
 
 
 def compute_threshold(data):
-    return [[point[0], max(1.033, data[i - 4 if i - 4 > 0 else i][1])] for i, point in enumerate(data)]
+    return [[point[0], max(1.033, data[i - 2 if i - 2 > 0 else i][1])] for i, point in enumerate(data)]
 
 
 def count_steps(data, lambdaD, axL, ayL, azL, RMS):
@@ -216,48 +217,62 @@ def find_index_s_away(s, data):
 
 
 if __name__ == '__main__':
+    
+    window_length = 40
+    
     # with open('pach-cardiac-Accelerometer-export-20-steps.json') as f:
     #     accelerometer_data = json.load(f)
 
     # a_x = [values["x"] for _, values in accelerometer_data.items()]
     # a_y = [values["y"] for _, values in accelerometer_data.items()]
     # a_z = [values["z"] for _, values in accelerometer_data.items()]
-    paths = glob.glob("D:/Data/MS_Sleep/step_count/DataSet/optimisation/data/*Armband*/accelerometer.csv")
     
-    # paths = glob.glob("D:/Data/USI_Sleep/E4_Data/S*/S*/*/accelerometer.csv")
-    # paths = [path.split('accelerometer.')[0] for path in paths][0:1]
+    paths = glob.glob("D:/Data/MS_Sleep/step_count/DataSet/optimisation/data/*Armband*/accelerometer.csv")
+    paths = glob.glob("D:/Data/USI_Sleep/E4_Data/S*/S*/*/accelerometer.csv")
+    # print(paths[0])
+    df = pl.read_csv(paths[0], has_header = False, columns = [2,3,4,5])[0:2000]
+    # print(df.head())
+    
+    df.columns = ["time", "x", "y", "z"]
+    df = df.sort('time')
+    print(df[0:10,:])
+    
+    a_x = df[:,1]
+    a_y = df[:,2]
+    a_z = df[:,3]
 
-    df = pd.read_csv(paths[0])
+    accelerometer_data = dict()
+    for i in range(len(df)):
+        accelerometer_data[df[i,0]] = dict()
+        accelerometer_data[df[i,0]]['x'] = df[i,1]
+        accelerometer_data[df[i,0]]['y'] = df[i,2]
+        accelerometer_data[df[i,0]]['z'] = df[i,3]
+        
+    a_xL, a_yL, a_zL = compute_moving_average_filter_aL(a_x, a_y, a_z, window_length)
 
-    a_x = df.iloc[:,2].values
-    a_y = df.iloc[:,3].values
-    a_z = df.iloc[:,4].values
-
-    a_xL, a_yL, a_zL = compute_moving_average_filter_aL(a_x, a_y, a_z, 16*2)
-
+    # print(np.nanmean(a_x))
+    # print(np.nanmean(a_y))
+    # print(np.nanmean(a_z))
+    
+    # print(a_x)
+    # print(a_y)
+    # print(a_z)
+    
     # plt.plot(a_xL)
     # plt.plot(a_yL)
     # plt.plot(a_zL)
 
     # pprint(a_xL, a_yL, a_zL)
     # accelerometer_data = [[df.iloc[i,0],[df.iloc[i,1],df.iloc[i,2],df.iloc[i,3]]] for i in range(len(df))]
-    accelerometer_data = dict()
-    for i in range(len(df)):
-        accelerometer_data[df.iloc[i,0]] = dict()
-        accelerometer_data[df.iloc[i,0]]['x'] = df.iloc[i,2]
-        accelerometer_data[df.iloc[i,0]]['y'] = df.iloc[i,3]
-        accelerometer_data[df.iloc[i,0]]['z'] = df.iloc[i,4]
-        
-    print(accelerometer_data)
     Am = compute_acceleration_magnitude(accelerometer_data)
     AmL = compute_moving_median_filter(Am)
     # aL = compute_moving_average_filter_aL(accelerometer_data, 16*2)
 
-    moving_avg_filter = compute_moving_average_filter(AmL, 8)
+    moving_avg_filter = compute_moving_average_filter(AmL, window_length)
 
     AmH = [[pt[0], pt[1] - moving_avg_filter[i][1]] for i, pt in enumerate(AmL)]
 
-    RMS_H = compute_root_mean_square(AmH, 3.00)
+    RMS_H = compute_root_mean_square(AmH, 15)
 
     threshold = compute_threshold(AmL)
     thresholdavg = compute_threshold(moving_avg_filter)
